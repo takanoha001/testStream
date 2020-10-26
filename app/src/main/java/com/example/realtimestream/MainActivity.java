@@ -8,6 +8,14 @@ import android.app.Activity;
 import android.net.rtp.AudioCodec;
 import android.net.rtp.AudioGroup;
 import android.net.rtp.AudioStream;
+import android.text.InputType;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.core.app.ActivityCompat;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -44,6 +52,12 @@ public class MainActivity extends Activity {
     private AudioStream audioStream;
     private Context context;
 
+    private Button mButton;
+    private EditText mEdit;
+
+    private String clientIpAddress;
+    private String myIpAddress;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -56,6 +70,26 @@ public class MainActivity extends Activity {
             };
             checkPermission(permissions, REQUEST_CODE);
         }
+        
+        myIpAddress = GetIpAddress();
+
+        TextView textView = (TextView) findViewById(R.id.textViewIpAddress);
+        textView.setText(myIpAddress);
+
+        mButton = (Button)findViewById(R.id.buttonStart);
+        mEdit   = (EditText)findViewById(R.id.editTextTheOtherIpAddress);
+
+        mButton.setOnClickListener(
+                new View.OnClickListener()
+                {
+                    public void onClick(View view)
+                    {
+                        Toast toast = Toast.makeText(context, mEdit.getText().toString(), Toast.LENGTH_SHORT);
+                        toast.show();
+                        Connect(mEdit.getText().toString());
+                    }
+                });
+
     }
 
     public void checkPermission(final String[] permissions,final int request_code){
@@ -65,22 +99,6 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-
-        try {
-            InetAddress localAddress = getLocalAddress();
-            InetAddress receiverAddress = InetAddress.getByName("192.168.86.229");
-
-            audioStream = new AudioStream(localAddress);
-            audioStream.setCodec(AudioCodec.PCMU);
-            audioStream.setMode(AudioStream.MODE_SEND_ONLY);
-
-            audioStream.associate(receiverAddress, 12345);
-            audioGroup = new AudioGroup();
-            audioGroup.setMode(AudioGroup.MODE_NORMAL);
-            audioStream.join(audioGroup);
-        } catch(Exception e) {
-
-        }
     }
 
     @Override
@@ -97,7 +115,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    private static InetAddress getLocalAddress() throws SocketException {
+    private static InetAddress GetLocalAddress() throws SocketException {
         Enumeration<NetworkInterface> netifs
                 = NetworkInterface.getNetworkInterfaces();
         while(netifs.hasMoreElements()) {
@@ -110,5 +128,39 @@ public class MainActivity extends Activity {
             }
         }
         return null;
+    }
+
+    private String GetIpAddress()
+    {
+        String ret = "";
+        try {
+            InetAddress localAddress = GetLocalAddress();
+            ret = localAddress.getHostAddress();
+        } catch(Exception e) {
+
+        }
+        return ret;
+    }
+
+    //"192.168.86.229"
+    private void Connect(String ipAddress)
+    {
+        try {
+            InetAddress localAddress = GetLocalAddress();
+            String test = localAddress.getHostAddress();
+            InetAddress receiverAddress = InetAddress.getByName(ipAddress);
+
+            audioStream = new AudioStream(localAddress);
+            audioStream.setCodec(AudioCodec.PCMA); //https://developer.android.com/reference/android/net/rtp/AudioCodec.html
+            audioStream.setMode(AudioStream.MODE_SEND_ONLY);
+            audioStream.associate(receiverAddress, 12345);
+            audioGroup = new AudioGroup();
+            audioGroup.setMode(AudioGroup.MODE_NORMAL);
+            audioStream.join(audioGroup);
+
+        } catch(Exception e) {
+
+        }
+
     }
 }
